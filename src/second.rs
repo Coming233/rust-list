@@ -1,3 +1,5 @@
+use std::path::Iter;
+
 /* ----------------------------- 从编程角度 ---------------------------- */
 // 实现细节保留在内部
 pub struct List<T> {
@@ -55,6 +57,22 @@ impl<T> Drop for List<T> {
     }
 }
 
+/* ----------------------------- 迭代器实现 ---------------------------- */
+pub struct IntoIter<T>(List<T>);
+
+impl<T> List<T> {
+    pub fn into_iter(self) -> IntoIter<T> {
+        IntoIter(self)
+    }
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        // 直接弹出元组结构体的第0个元素
+        self.0.pop()
+    }
+}
 // TDD测试驱动开发
 /* ----------------------------- 测试代码 ----------------------------- */
 #[cfg(test)]
@@ -109,5 +127,17 @@ mod test {
 
         assert_eq!(list.peek(), Some(&42));
         assert_eq!(list.pop(), Some(42));
+    }
+    #[test]
+    fn into_iter() {
+        let mut list = List::new();
+        list.push(3);
+        list.push(2);
+        list.push(1);
+        let mut iter = list.into_iter();
+        assert_eq!(iter.next(), Some(1));
+        assert_eq!(iter.next(), Some(2));
+        assert_eq!(iter.next(), Some(3));
+        assert_eq!(iter.next(), None);
     }
 }
