@@ -1,5 +1,3 @@
-use std::path::Iter;
-
 /* ----------------------------- 从编程角度 ---------------------------- */
 // 实现细节保留在内部
 pub struct List<T> {
@@ -73,6 +71,34 @@ impl<T> Iterator for IntoIter<T> {
         self.0.pop()
     }
 }
+/* ----------------------------- Iter实现 ----------------------------- */
+// Iter是获取不可变引用的迭代器类型
+pub struct Iter<'a, T> {
+    next: Option<&'a Node<T>>,
+}
+
+// 这里无需生命周期，因为 List 没有使用生命周期的关联项
+impl<T> List<T> {
+    // 这里我们为 `iter` 声明一个生命周期 'a , 此时 `&self` 需要至少和 `Iter` 活得一样久
+    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+        Iter {
+            next: self.head.as_deref(),
+        }
+    }
+}
+
+// 这里声明生命周期是因为下面的关联类型 Item 需要
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+    // 这里无需更改，因为上面已经处理了.
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next.map(|node| {
+            self.next = node.next.as_deref();
+            &node.elem
+        })
+    }
+}
+
 // TDD测试驱动开发
 /* ----------------------------- 测试代码 ----------------------------- */
 #[cfg(test)]
@@ -139,5 +165,18 @@ mod test {
         assert_eq!(iter.next(), Some(2));
         assert_eq!(iter.next(), Some(3));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter() {
+        let mut list = List::new();
+        list.push(1);
+        list.push(2);
+        list.push(3);
+
+        let mut iter = list.iter();
+        assert_eq!(iter.next(), Some(&3));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&1));
     }
 }
